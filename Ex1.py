@@ -1,7 +1,8 @@
-from time import time
-
+import time
+import string
+import tqdm
 #! Set password
-real_passwd = "5" * 15
+real_passwd = "lehoanganhabcd"
 
 #! Compare function
 def compare(string1, string2):
@@ -12,28 +13,46 @@ def compare(string1, string2):
             return False
     return True
 
+#! duration
+def duration(user_input):
+    period = 0
+    begin = time.time_ns()
+    for i in range(10000):
+        compare(real_passwd, user_input)
+    end = time.time_ns()
+    period += end - begin
+    return period
+
+
 #! timing attack to retrieve the length of the password
 periods = []
-for i in range(20):
+for i in range(30):
     user_input = "x" * i
-    begin = time()
-    compare(real_passwd, user_input)
-    end = time()
-    period = end - begin
+    period = duration(user_input)
     periods.append(period)
 length = periods.index(max(periods))
-print(f"The length of the password is {length} characters")
+print(f"length: {length}")
+
 
 #! timing attack to retrieve the password
-characters_list = [chr(i) for i in range(128)]
-
-for i in range(length):
-    for character in characters_list:
-        user_input = character
-        begin = time()
-        compare(real_passwd, user_input)
-        end = time()
-        period = end - begin
-        periods.append(period)
-    real_passwd += characters_list[periods.index(max(periods))]
-print(real_passwd)
+characters = string.ascii_lowercase
+temp = ""
+print(f"Start retrieving first {length-1} characters")
+for i in tqdm.tqdm(range(length-1)):
+    periods_temp = [0] * len(characters)
+    for iter in range(20):
+        periods = []
+        for j in characters:
+            user_input = temp + j + "a" * (length - i -1)
+            period = duration(user_input)
+            periods.append(period)
+        periods_temp = [a + b for a, b in zip(periods, periods_temp)]
+    letter_found = characters[periods_temp.index(max(periods_temp))]
+    temp += letter_found
+print("Retrieving the last character using bruteforce")
+for letter in characters:
+    user_input = temp + letter
+    if compare(real_passwd, user_input):
+        break
+print(f"Last character: {letter}")
+print("Password: " + user_input)
